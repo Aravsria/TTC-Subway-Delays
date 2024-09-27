@@ -1,0 +1,151 @@
+*This is Debris File contains deleted/unused code that may be useful for myself or data analysts*
+
+##########
+
+#### Clean data ####
+raw_data <- read_csv("data/raw_data/raw_data.csv")
+
+cleaned_data <-
+  raw_data |>
+  janitor::clean_names() |> 
+  separate(col = time_period,
+            into = c("year", "month"),
+            sep = "-") |> 
+  mutate(date = lubridate::ymd(paste(year, month, "01", sep = "-"))
+         )
+  
+#### Save data ####
+write_csv(cleaned_data, "data/analysis_data/analysis_data.csv")
+
+##########
+
+#### Workspace setup ####
+library(tidyverse)  # For data manipulation and cleaning
+library(readxl)     # For reading Excel files
+library(lubridate)  # For handling date and time data
+
+#### Load and clean data ####
+# Load the raw data from an Excel file
+raw_data <- read_excel("data/raw_data/ttc-subway-delay-data-2024.xlsx")
+
+# Print the first few rows of the raw data to inspect its structure
+print(head(raw_data))
+
+# Clean the data
+cleaned_data <- raw_data %>%
+  # Ensure all column names are in lower case for consistency
+  rename_with(tolower, .cols = everything()) %>%  # Rename all columns to lowercase
+  mutate(
+    date = mdy(date),  # Adjust this format depending on your raw data's date format
+    time = hms(time)   # Ensure time is in 'HH:MM:SS' format; adjust parsing method if needed
+  ) %>%
+  drop_na(code, duration) %>%  # Drop rows where 'code' or 'duration' is missing
+  mutate(
+    day_of_week = wday(date, label = TRUE, abbr = FALSE),  # Adds day of the week as a full textual representation
+    hour_of_day = hour(time),  # Extract hour from time for hourly analysis
+    is_weekend = if_else(day_of_week %in% c("Saturday", "Sunday"), TRUE, FALSE)  # Identify weekend days
+  ) %>%
+  filter(duration >= 0)  # Assuming 'duration' should not be negative
+
+# Save the cleaned data to a new CSV for analysis
+write_csv(cleaned_data, "data/analysis_data/cleaned_ttc_subway_delay_data.csv")
+
+# Output the structure of the cleaned data to verify
+print(glimpse(cleaned_data))
+
+########## Data Cleaning
+
+#### Preamble ####
+# Purpose: Cleans the raw TTC Subway Delay data into an analysis-ready dataset
+
+#### Workspace setup ####
+library(tidyverse)  # For data manipulation and cleaning
+library(readxl)     # For reading Excel files
+library(lubridate)  # For handling date and time data
+library(janitor)    # For cleaning column names
+
+#### Load and clean data ####
+# Load the raw data from an Excel file
+raw_data <- read_excel("data/raw_data/ttc-subway-delay-data-2024.xlsx")
+
+# Print the first few rows of the raw data to inspect its structure
+print(head(raw_data))
+
+# Clean the data
+cleaned_data <- raw_data %>%
+  clean_names() %>%  # Standardize column names for easier handling
+  mutate(
+    date = ymd(date),  # Convert date column to Date format, adjust function based on your date format
+    time = hms(time)   # Convert time column to Time format, adjust if necessary
+  ) %>%
+  drop_na(min_delay) %>%  # Ensure there are no NA values in the min_delay column
+  mutate(
+    day_of_week = wday(date, label = TRUE, abbr = FALSE),  # Adds day of the week as a full textual representation
+    hour_of_day = hour(time),  # Extract hour from time for hourly analysis
+    is_weekend = day_of_week %in% c("Saturday", "Sunday")  # Identify weekend days
+  ) %>%
+  filter(min_delay >= 0)  # Assuming min_delay should not be negative
+
+# Save the cleaned data to a new CSV for analysis
+write_csv(cleaned_data, "data/analysis_data/cleaned-ttc-subway-delay-data-2024.csv")
+
+# Output the structure of the cleaned data to verify
+print(glimpse(cleaned_data))
+
+########## Bar Chart Idea
+
+library(ggplot2)
+
+ggplot(subway_data, aes(x = day_of_week)) +
+  geom_bar(fill = "blue", color = "black") +
+  labs(title = "Distribution of Subway Delays by Day of the Week",
+       x = "Day of the Week",
+       y = "Count of Delays") +
+  theme_minimal()
+
+########## Histogram Idea
+
+# Ensure subway_data is correctly loaded
+print(head(subway_data))
+
+# Plot the distribution of Subway Delays by Time of Day
+ggplot(subway_data, aes(x = time, fill = line)) +
+  geom_histogram(binwidth = 60) +
+  labs(title = "Distribution of Subway Delays by Time of Day",
+       x = "Time of Day",
+       y = "Frequency of Delays")
+       
+       
+##########
+
+library(ggplot2)
+library(dplyr)
+library(lubridate)
+
+# Ensure subway_data is correctly loaded and the 'Date' column exists
+# If 'subway_data' does not already include a 'Date' column, adjust this part accordingly
+if("date" %in% names(subway_data)) {
+  subway_data <- subway_data %>%
+    mutate(
+      Date = as.Date(date, format = "%Y-%m-%d"), # Adjust format as necessary
+      Week = week(Date),
+      Year = year(Date)
+    ) %>%
+    group_by(Year, Week, line) %>%
+    summarise(Average_Delay = mean(min_delay, na.rm = TRUE), .groups = 'drop')
+  
+  # Creating the plot
+  ggplot(subway_data, aes(x = interaction(Year, Week), y = Average_Delay, fill = line)) +
+    geom_bar(stat = "identity", position = position_dodge()) +
+    labs(title = "Average Weekly Delay Frequency by Line",
+         x = "Week of the Year",
+         y = "Average Delay (minutes)",
+         fill = "Subway Line") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1)) # Rotate x-axis labels for readability
+} else {
+  print("The 'Date' column was not found in your data frame.")
+}
+  
+##########
+
